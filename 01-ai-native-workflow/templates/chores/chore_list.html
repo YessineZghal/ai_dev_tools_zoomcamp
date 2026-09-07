@@ -17,28 +17,30 @@
           <tr>
             <td>
               <strong>{{ chore.title }}</strong>
+              {% if chore.is_recurring %}
+                <span class="badge">⟳ {{ chore.get_recurrence_display|lower }}{% if chore.rotate_assignee %}, rotates{% endif %}</span>
+              {% endif %}
               {% if chore.description %}<br><span class="muted">{{ chore.description }}</span>{% endif %}
             </td>
             <td>{{ chore.points }}</td>
             <td>{{ chore.is_active|yesno:"yes,no" }}</td>
             <td>
-              {% for a in chore.assignments.all %}
-                {% if a.status == "PENDING" %}
-                  <div class="actions">
-                    <span>{{ a.assignee.username }} · due {{ a.due_date }}</span>
-                    {% if a.is_overdue %}<span class="pill-overdue">overdue</span>{% endif %}
-                    <form class="inline" method="post" action="{% url 'assignment_complete' a.pk %}">
-                      {% csrf_token %}
-                      <input type="hidden" name="next" value="{{ request.path }}">
-                      <button type="submit">Complete</button>
-                    </form>
-                    <form class="inline" method="post" action="{% url 'assignment_skip' a.pk %}">
-                      {% csrf_token %}
-                      <input type="hidden" name="next" value="{{ request.path }}">
-                      <button type="submit" class="button secondary">Skip</button>
-                    </form>
-                  </div>
-                {% endif %}
+              {% for a in chore.pending_assignments %}
+                <div class="actions">
+                  <span>{{ a.assignee.username }} · due {{ a.due_date }}</span>
+                  {% if a.is_overdue %}<span class="pill-overdue">overdue</span>{% endif %}
+                  <form class="inline" method="post" action="{% url 'assignment_complete' a.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit">Complete</button>
+                  </form>
+                  <a class="button secondary" href="{% url 'assignment_complete' a.pk %}?next={{ request.path }}">＋ note</a>
+                  <form class="inline" method="post" action="{% url 'assignment_skip' a.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit" class="button secondary">Skip</button>
+                  </form>
+                </div>
               {% empty %}
                 <span class="muted">none</span>
               {% endfor %}

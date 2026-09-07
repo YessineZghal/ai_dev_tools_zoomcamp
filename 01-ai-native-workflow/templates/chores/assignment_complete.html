@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Complete {{ assignment.chore.title }} · Choreo{% endblock %}
+{% block content %}
+  <h1>Complete &ldquo;{{ assignment.chore.title }}&rdquo;</h1>
+  <p class="muted">
+    Assigned to {{ assignment.assignee.username }} · due {{ assignment.due_date }}
+    · worth {{ assignment.chore.points }} pt{{ assignment.chore.points|pluralize }}
+  </p>
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <label for="note">Note <span class="muted">(optional)</span></label>
+      <textarea name="note" id="note" rows="3"
+        placeholder="Anything worth recording?"></textarea>
+      <div class="actions" style="margin-top:0.75rem">
+        <button type="submit">Mark done</button>
+        <a class="button secondary" href="{% url 'dashboard' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

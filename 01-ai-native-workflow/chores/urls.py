@@ -4,7 +4,9 @@ from . import views
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("household/", views.household_detail, name="household_detail"),
     path("household/setup/", views.household_setup, name="household_setup"),
+    path("mine/", views.my_chores, name="my_chores"),
     # Chores CRUD (Feature 1)
     path("chores/", views.chore_list, name="chore_list"),
     path("chores/new/", views.chore_create, name="chore_create"),

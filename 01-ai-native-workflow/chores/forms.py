@@ -73,10 +73,31 @@ class RegisterForm(HouseholdChoiceForm, UserCreationForm):
         return user
 
 
+class MembershipForm(forms.ModelForm):
+    class Meta:
+        model = Membership
+        fields = ["display_name"]
+
+
 class ChoreForm(forms.ModelForm):
     class Meta:
         model = Chore
-        fields = ["title", "description", "points", "is_active"]
+        fields = [
+            "title",
+            "description",
+            "points",
+            "is_active",
+            "recurrence",
+            "rotate_assignee",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The model has a default, so an omitted value just means "does not repeat".
+        self.fields["recurrence"].required = False
+
+    def clean_recurrence(self):
+        return self.cleaned_data.get("recurrence") or Chore.Recurrence.NONE
 
 
 class AssignmentForm(forms.ModelForm):

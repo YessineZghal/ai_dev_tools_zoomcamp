@@ -83,3 +83,18 @@ class ChoreCrudTests(TestCase):
         response = self.client.get(reverse("chore_list"))
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login/", response["Location"])
+
+    def test_list_shows_none_when_only_finished_assignments(self):
+        chore = Chore.objects.create(household=self.hh_a, title="Done-only")
+        done = Assignment.objects.create(
+            chore=chore, assignee=self.ana, due_date=date.today()
+        )
+        done.complete(self.ana)
+        skipped = Assignment.objects.create(
+            chore=chore, assignee=self.ana, due_date=date.today()
+        )
+        skipped.skip()
+        response = self.client.get(reverse("chore_list"))
+        self.assertContains(response, "Done-only")
+        # the finished assignments are not listed as open work
+        self.assertNotContains(response, "due {}".format(date.today()))

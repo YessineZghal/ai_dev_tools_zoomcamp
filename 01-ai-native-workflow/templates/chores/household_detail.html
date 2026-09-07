@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ household.name }} · Choreo{% endblock %}
+{% block content %}
+  <h1>{{ household.name }}</h1>
+  <p class="muted">
+    Invite housemates with code
+    <span class="invite-code">{{ household.invite_code }}</span>
+  </p>
+
+  <section class="card">
+    <h2>Members</h2>
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Points (30d)</th><th>Pending</th><th>Joined</th></tr>
+      </thead>
+      <tbody>
+        {% for row in members %}
+          <tr>
+            <td>
+              {{ row.membership.display_name }}
+              <span class="muted">@{{ row.membership.user.username }}</span>
+            </td>
+            <td>{{ row.points_30d }}</td>
+            <td>{{ row.pending_count }}</td>
+            <td class="muted">{{ row.membership.joined_at|date:"M j, Y" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Your display name</h2>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Save</button>
+    </form>
+  </section>
+{% endblock %}

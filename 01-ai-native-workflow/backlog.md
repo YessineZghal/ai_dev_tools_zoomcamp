@@ -15,6 +15,11 @@ ends with passing tests. Status reflects the current repo.
 | 7 | Dashboard (Feature 4) | done |
 | 8 | Test suite & data-isolation pass | done |
 | 9 | Docs (README, backlog) | done |
+| 10 | v2-A: review fixes (notes UI, chore_list prefetch) | done |
+| 11 | v2-B: recurring chores (+ rotation, + `generate_recurring`) | done |
+| 12 | v2-C: household / members page | done |
+| 13 | v2-D: My Chores page + nav overdue badge | done |
+| 14 | v2-E: docs refresh | done |
 
 ---
 
@@ -90,3 +95,29 @@ end-to-end `test_journey.py`, and switch to a fast password hasher under
 
 `README.md` with setup, feature descriptions, test list, project layout, and
 the six homework answers; keep `backlog.md` and `_docs/plan.md` current.
+
+---
+
+## v2 — Review fixes + feature additions
+
+Full detail in [`task-v2.md`](./task-v2.md).
+
+### Task 10 — Review fixes
+Completion notes reachable from the UI (dedicated `GET` form on
+`assignment_complete`); `chore_list` prefetches only pending assignments.
+
+### Task 11 — Recurring chores
+`Chore.recurrence` + `rotate_assignee`; `Assignment.spawn_next()` on
+complete/skip; `manage.py generate_recurring` safety-net command.
+**Acceptance:** `test_recurring.py` green (15 tests).
+
+### Task 12 — Household / members page
+`/household/` roster with 30-day points + pending counts, invite code, editable
+own display name (now shown on the leaderboard).
+
+### Task 13 — My Chores page + nav badge
+`/mine/` with a status filter; `overdue_badge` context processor drives a red
+nav badge.
+
+### Task 14 — Docs refresh
+README v2 section, `_docs/spec.md` §9/§12 update, screenshots, test counts.

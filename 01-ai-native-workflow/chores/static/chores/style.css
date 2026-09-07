@@ -53,6 +53,19 @@ body {
 
 .who { color: var(--muted); font-size: 0.9rem; }
 
+.nav-badge {
+  display: inline-block;
+  min-width: 1.1rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: #b91c1c;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.1rem;
+}
+
 .inline { display: inline; margin: 0; }
 
 .link-button {

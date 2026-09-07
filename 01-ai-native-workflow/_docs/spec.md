@@ -86,7 +86,9 @@ The dashboard also shows the household's **invite code**.
 Household(name, invite_code[unique, auto], created_at)
 Membership(user[OneToOne→User], household[FK], display_name, joined_at)
 Chore(household[FK], title, description, points[+int, default 1],
-      is_active[bool, default True], created_at)
+      is_active[bool, default True], created_at,
+      recurrence[NONE|DAILY|WEEKLY|BIWEEKLY|MONTHLY, default NONE],  # v2
+      rotate_assignee[bool, default False])                          # v2
 Assignment(chore[FK], assignee[FK→User], due_date[date],
            status[PENDING|DONE|SKIPPED], completed_at[nullable],
            created_at)
@@ -127,13 +129,34 @@ offline.
 
 ## 9. Non-goals (YAGNI)
 
-- No recurring / auto-rotating chores (would be feature #5; explicitly cut).
 - No email or push notifications.
 - No REST API.
 - No multiple households per user.
 - No roles/permissions beyond "member".
 - No real-time updates.
 - No deployment config (runs on the Django dev server).
+
+> **v2 update:** recurring / auto-rotating chores were originally cut here.
+> They are now **in scope** — see §12.
+
+## 12. v2 additions
+
+- **Recurring chores.** `Chore.recurrence` (`NONE` / `DAILY` / `WEEKLY` /
+  `BIWEEKLY` / `MONTHLY`) and `Chore.rotate_assignee` (bool). Completing or
+  skipping a recurring assignment auto-creates the next occurrence — due date
+  advanced by the interval (monthly clamps to the month length), assignee kept
+  or rotated to the next member. Guarded so there is never more than one open
+  occurrence per chore. `manage.py generate_recurring` is a cron-friendly
+  safety net.
+- **Completion notes reachable.** `assignment_complete` on `GET` shows a small
+  form with an optional note; the quick one-click Complete buttons still `POST`
+  straight through.
+- **Household page** (`household_detail`, `/household/`). Member roster with
+  30-day points and pending counts, the invite code, and a form to set your own
+  `Membership.display_name`. Display names now show on the roster and the
+  dashboard leaderboard (usernames elsewhere).
+- **My Chores page** (`my_chores`, `/mine/`) with a status filter, plus a nav
+  badge (`chores.context_processors.overdue_badge`) showing your overdue count.
 
 ## 10. Tech stack
 

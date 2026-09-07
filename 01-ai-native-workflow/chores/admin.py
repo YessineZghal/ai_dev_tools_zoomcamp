@@ -17,8 +17,16 @@ class MembershipAdmin(admin.ModelAdmin):
 
 @admin.register(Chore)
 class ChoreAdmin(admin.ModelAdmin):
-    list_display = ("title", "household", "points", "is_active", "created_at")
-    list_filter = ("household", "is_active")
+    list_display = (
+        "title",
+        "household",
+        "points",
+        "is_active",
+        "recurrence",
+        "rotate_assignee",
+        "created_at",
+    )
+    list_filter = ("household", "is_active", "recurrence")
     search_fields = ("title", "description")
 
 

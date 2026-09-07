@@ -26,7 +26,8 @@ vague idea  →  spec  →  plan  →  backlog  →  implement task-by-task  →
 | Wrote a granular, test-first coding plan | [`task.md`](./task.md) |
 | Broke the plan into an ordered backlog | [`backlog.md`](./backlog.md) |
 | Implemented each backlog item, committing after each | the `chores/` app |
-| Covered every feature with tests | `chores/tests/` (60 tests) |
+| Covered every feature with tests | `chores/tests/` (92 tests) |
+| Reviewed the result and added a second round of features | [`task-v2.md`](./task-v2.md) |
 
 ---
 
@@ -66,6 +67,34 @@ Register with a username and password, then either **create a new household**
 (give it a name) or **join an existing one** with its 6-character invite code.
 Login/logout use Django's built-in auth.
 
+## v2 additions
+
+After a code review ([`task-v2.md`](./task-v2.md)), a second round:
+
+### 5. Recurring chores
+A chore can repeat **daily / weekly / every 2 weeks / monthly**, and can
+optionally **rotate** through household members. When a recurring assignment is
+completed or skipped, the next occurrence is created automatically — due date
+advanced by the interval (monthly clamps to the month's length), assignee kept
+or handed to the next member. There is never more than one open occurrence per
+chore. `uv run python manage.py generate_recurring` is a cron-friendly safety
+net that fills in any missed occurrences.
+
+### 6. Household page
+`/household/` — the member roster with each person's 30-day points and pending
+count, the invite code, and a form to set **your own display name**. Display
+names show on the roster and the dashboard leaderboard.
+
+### 7. My Chores page + overdue badge
+`/mine/` — all of your assignments, filterable by status (pending / done /
+skipped / all). The nav shows a red badge with your overdue count on every page.
+
+### Review fixes folded in
+- **Completion notes are now reachable** — a "＋ note" link opens a small form;
+  the one-click Complete buttons still post straight through.
+- **`chore_list` prefetch** — only pending assignments are loaded per chore
+  (was pulling all history), and "none" now renders correctly.
+
 ---
 
 ## Screens
@@ -73,9 +102,11 @@ Login/logout use Django's built-in auth.
 | | |
 |---|---|
 | ![Dashboard](_docs/img/dashboard.jpg) | ![Chores](_docs/img/chores.jpg) |
-| **Dashboard** — panels + invite code | **Chores** — catalogue, per-chore assignments, complete/skip |
-| ![History](_docs/img/history.jpg) | ![Register](_docs/img/register.jpg) |
-| **History** — completion log, filterable | **Register** — create or join a household |
+| **Dashboard** — panels + invite code | **Chores** — catalogue with recurrence badges, complete/skip/＋note |
+| ![My chores](_docs/img/my-chores.jpg) | ![Household](_docs/img/household.jpg) |
+| **My chores** — status filter, nav overdue badge | **Household** — roster, points, display name |
+| ![History](_docs/img/history.jpg) | ![New chore](_docs/img/chore-form.jpg) |
+| **History** — completion log, filterable | **New chore** — points, recurrence, rotation |
 
 ---
 
@@ -119,8 +150,8 @@ uv run python manage.py shell < _docs/seed_demo.py
 ```
 
 That creates the household **"Maple Street 12"** with members `ana`, `ben`,
-`cleo` (all password `demo-pass-123`), four chores, some open/overdue
-assignments, and completion history.
+`cleo` (all password `demo-pass-123`), four chores (some recurring), open and
+overdue assignments, and completion history.
 
 ---
 
@@ -130,19 +161,22 @@ assignments, and completion history.
 uv run python manage.py test
 ```
 
-60 tests, all green (they run in well under a second — the settings switch to a
+92 tests, all green (they run in well under a second — the settings switch to a
 fast password hasher when `test` is in `sys.argv`).
 
 | File | Covers |
 |------|--------|
 | `test_models.py` (13) | invite-code generation & uniqueness, `is_overdue` logic, `complete()` creates an event with the right points, `skip()` creates none, chore→assignment cascade |
 | `test_auth.py` (10) | register→create household, register→join by code (case-insensitive), bad code rejected, login required, logout, no-membership fallback |
-| `test_chores.py` (8) | list isolation, create attaches the right household, update, cascade delete, cross-household 404s, login required |
-| `test_assignments.py` (9) | assignee limited to household, create → PENDING, complete records event + points, skip has no event, GET → 405, cross-household 404, safe `next` redirect |
+| `test_chores.py` (9) | list isolation, create attaches the right household, update, cascade delete, cross-household 404s, "none" when only finished assignments, login required |
+| `test_assignments.py` (11) | assignee limited to household, create → PENDING, complete records event + points, GET shows note form, note stored & shown in history, skip has no event, skip GET → 405, cross-household 404, safe `next` redirect |
 | `test_history.py` (4) | newest-first ordering, household scoping, member filter, login required |
 | `test_dashboard.py` (7) | my-pending scoping, overdue panel, recent-activity cap of 10, leaderboard 30-day window & ranking, zero-score members included, invite code shown |
 | `test_isolation.py` (8) | one audit point: household A cannot list / edit / delete / assign / complete / skip / see history of household B |
 | `test_journey.py` (1) | end-to-end: register → household → chore → assign → complete → dashboard + history → second member joins by code |
+| `test_recurring.py` (15) | `_add_one_month` clamping (incl. leap Feb), `next_due` per interval, weekly spawn keeps assignee, rotation hands to next member, idempotent complete spawns once, skip also spawns, `NONE`/inactive spawn nothing, no spawn when one is already pending, `generate_recurring` command creates + is a no-op on re-run |
+| `test_household.py` (6) | roster points/pending counts & scoping, invite code shown, update own display name only, display name reaches the leaderboard, login required |
+| `test_my_chores.py` (8) | default = my pending only, `?status=all` = all mine, `?status=done` filters, bad status falls back, login required; context processor counts my overdue, empty for anon / no-household |
 
 ---
 
@@ -167,17 +201,20 @@ fast password hasher when `test` is in `sys.argv`).
 │   ├── wsgi.py / asgi.py
 ├── chores/                  # the app
 │   ├── models.py            # Household, Membership, Chore, Assignment, CompletionEvent
-│   ├── forms.py             # RegisterForm, HouseholdChoiceForm, ChoreForm, AssignmentForm
+│   ├── forms.py             # Register / HouseholdChoice / Membership / Chore / Assignment
 │   ├── views.py             # all views, each scoped to request.user's household
 │   ├── urls.py
 │   ├── admin.py
+│   ├── context_processors.py # nav overdue badge
+│   ├── management/commands/generate_recurring.py
 │   ├── migrations/
 │   ├── static/chores/style.css
-│   └── tests/               # 8 test modules, 60 tests
+│   └── tests/               # 11 test modules, 92 tests
 └── templates/
     ├── base.html
     ├── registration/        # login.html, register.html
-    └── chores/              # dashboard, chore_list, chore_form, ...
+    └── chores/              # dashboard, chore_list, chore_form, my_chores,
+                             # household_detail, assignment_complete, ...
 ```
 
 ---
@@ -200,13 +237,15 @@ Household ──1:*── Membership ──1:1── User
 |-------|--------|
 | `Household` | `name`, `invite_code` (6 chars, auto, unique), `created_at` |
 | `Membership` | `user` (1:1), `household` (FK), `display_name`, `joined_at` |
-| `Chore` | `household` (FK), `title`, `description`, `points` (default 1), `is_active`, `created_at` |
+| `Chore` | `household` (FK), `title`, `description`, `points` (default 1), `is_active`, `recurrence` (NONE/DAILY/WEEKLY/BIWEEKLY/MONTHLY), `rotate_assignee`, `created_at` |
 | `Assignment` | `chore` (FK), `assignee` (FK→User), `due_date`, `status` (PENDING/DONE/SKIPPED), `completed_at`, `created_at` |
 | `CompletionEvent` | `assignment` (FK), `completed_by` (FK→User), `completed_at`, `points_awarded`, `note` |
 
 Business logic lives on the models: `Household.save()` generates the invite
 code, `Assignment.is_overdue()`, `Assignment.complete(user, note="")` (creates
-the `CompletionEvent`, idempotent), `Assignment.skip()`.
+the `CompletionEvent`, idempotent), `Assignment.skip()`,
+`Assignment.spawn_next()` (next occurrence of a recurring chore),
+`Chore.next_due()` / `Chore.next_assignee()`.
 
 ---
 
@@ -215,7 +254,7 @@ the `CompletionEvent`, idempotent), `Assignment.skip()`.
 | # | Question | Answer |
 |---|----------|--------|
 | **Q1** | Coding agent used | **Claude Code** |
-| **Q2** | Features the spec settled on | **Chores CRUD**, **Assignments**, **Completion log**, **Dashboard** (with a 30-day points leaderboard) |
+| **Q2** | Features the spec settled on | **Chores CRUD**, **Assignments**, **Completion log**, **Dashboard** (with a 30-day points leaderboard). *v2 added recurring chores, a household page, and a My Chores page.* |
 | **Q3** | File to edit to include the app in the project | **`settings.py`** (`INSTALLED_APPS`) |
 | **Q4** | Task 1 in the backlog | **Project setup** — create the `uv` project, install Django, generate the `household` project and `chores` app, and register the app in `settings.py` |
 | **Q5** | Command to start the dev server | **`uv run python manage.py runserver`** |
@@ -225,6 +264,6 @@ the `CompletionEvent`, idempotent), `Assignment.skip()`.
 
 ## Out of scope (deliberately)
 
-Recurring / auto-rotating chores, notifications, a REST API, multiple
-households per user, roles beyond "member", and any deployment config. See
-[`_docs/spec.md` §9](./_docs/spec.md).
+Notifications, a REST API, multiple households per user, roles beyond "member",
+and any deployment config. See [`_docs/spec.md` §9](./_docs/spec.md).
+(Recurring chores were originally out of scope; v2 brought them in.)

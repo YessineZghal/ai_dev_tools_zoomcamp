@@ -77,11 +77,34 @@ class AssignmentViewTests(TestCase):
         self.assertEqual(assignment.status, Assignment.Status.SKIPPED)
         self.assertEqual(CompletionEvent.objects.count(), 0)
 
-    def test_complete_rejects_get(self):
+    def test_complete_get_shows_note_form(self):
         assignment = Assignment.objects.create(
             chore=self.chore, assignee=self.bea, due_date=date.today()
         )
         response = self.client.get(reverse("assignment_complete", args=[assignment.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="note"')
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.status, Assignment.Status.PENDING)
+
+    def test_complete_with_note_stores_it_and_shows_in_history(self):
+        assignment = Assignment.objects.create(
+            chore=self.chore, assignee=self.bea, due_date=date.today()
+        )
+        self.client.post(
+            reverse("assignment_complete", args=[assignment.pk]),
+            {"note": "took me 20 minutes"},
+        )
+        event = CompletionEvent.objects.get()
+        self.assertEqual(event.note, "took me 20 minutes")
+        history = self.client.get(reverse("history"))
+        self.assertContains(history, "took me 20 minutes")
+
+    def test_skip_rejects_get(self):
+        assignment = Assignment.objects.create(
+            chore=self.chore, assignee=self.bea, due_date=date.today()
+        )
+        response = self.client.get(reverse("assignment_skip", args=[assignment.pk]))
         self.assertEqual(response.status_code, 405)
 
     def test_cannot_complete_other_household_assignment(self):

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}My chores · Choreo{% endblock %}
+{% block content %}
+  <h1>My chores</h1>
+
+  <p class="actions">
+    {% for value, label in filters %}
+      <a class="button {% if value != status %}secondary{% endif %}"
+         href="?status={{ value }}">{{ label }}</a>
+    {% endfor %}
+  </p>
+
+  {% if assignments %}
+    <table>
+      <thead>
+        <tr><th>Chore</th><th>Due</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for a in assignments %}
+          <tr class="{% if a.is_overdue %}overdue{% endif %}">
+            <td>{{ a.chore.title }}</td>
+            <td>
+              {{ a.due_date }}
+              {% if a.is_overdue %}<span class="pill-overdue">overdue</span>{% endif %}
+            </td>
+            <td>{{ a.get_status_display }}</td>
+            <td class="actions nowrap">
+              {% if a.status == "PENDING" %}
+                <form class="inline" method="post" action="{% url 'assignment_complete' a.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit">Complete</button>
+                </form>
+                <a class="button secondary" href="{% url 'assignment_complete' a.pk %}?next={{ request.path }}">＋ note</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">Nothing here.</p>
+  {% endif %}
+{% endblock %}

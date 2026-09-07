@@ -29,10 +29,22 @@ for user in (ana, ben, cleo):
 dishes = Chore.objects.create(
     household=household, title="Wash the dishes", points=2,
     description="Including the pans.",
+    recurrence=Chore.Recurrence.DAILY, rotate_assignee=True,
 )
-trash = Chore.objects.create(household=household, title="Take out the trash", points=1)
+trash = Chore.objects.create(
+    household=household, title="Take out the trash", points=1,
+    recurrence=Chore.Recurrence.WEEKLY,
+)
 vacuum = Chore.objects.create(household=household, title="Vacuum living room", points=3)
-bathroom = Chore.objects.create(household=household, title="Clean the bathroom", points=5)
+bathroom = Chore.objects.create(
+    household=household, title="Clean the bathroom", points=5,
+    recurrence=Chore.Recurrence.MONTHLY,
+)
+
+ana.membership.display_name = "Ana"
+ana.membership.save()
+ben.membership.display_name = "Ben"
+ben.membership.save()
 
 today = date.today()
 Assignment.objects.create(chore=dishes, assignee=ana, due_date=today)

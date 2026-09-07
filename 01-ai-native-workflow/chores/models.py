@@ -7,8 +7,9 @@ The object graph is:
     Assignment 1--* CompletionEvent *--1 User (completed_by)
 """
 
+import calendar
 import secrets
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib.auth.models import User
 from django.db import models
@@ -28,6 +29,13 @@ def household_of(user) -> "Household | None":
     """Return the household the user belongs to, or None if they have no membership."""
     membership = getattr(user, "membership", None)
     return membership.household if membership is not None else None
+
+
+def _add_one_month(d: date) -> date:
+    """One calendar month after ``d``, clamping the day to the target month's length."""
+    year, month = (d.year + 1, 1) if d.month == 12 else (d.year, d.month + 1)
+    last_day = calendar.monthrange(year, month)[1]
+    return date(year, month, min(d.day, last_day))
 
 
 class Household(models.Model):
@@ -58,7 +66,11 @@ class Household(models.Model):
     @property
     def members(self):
         """Users linked to this household through a Membership."""
-        return User.objects.filter(membership__household=self).order_by("username")
+        return (
+            User.objects.filter(membership__household=self)
+            .select_related("membership")
+            .order_by("username")
+        )
 
 
 class Membership(models.Model):
@@ -81,7 +93,25 @@ class Membership(models.Model):
 
 
 class Chore(models.Model):
-    """A recurring task the household cares about (the catalogue entry)."""
+    """A task the household cares about (the catalogue entry).
+
+    A chore may be one-off (``recurrence == NONE``) or repeating. When a
+    repeating chore's assignment is completed or skipped, the next occurrence is
+    created automatically (see ``Assignment.spawn_next``).
+    """
+
+    class Recurrence(models.TextChoices):
+        NONE = "NONE", "Does not repeat"
+        DAILY = "DAILY", "Daily"
+        WEEKLY = "WEEKLY", "Weekly"
+        BIWEEKLY = "BIWEEKLY", "Every 2 weeks"
+        MONTHLY = "MONTHLY", "Monthly"
+
+    _INTERVAL_DAYS = {
+        Recurrence.DAILY: 1,
+        Recurrence.WEEKLY: 7,
+        Recurrence.BIWEEKLY: 14,
+    }
 
     household = models.ForeignKey(
         Household, on_delete=models.CASCADE, related_name="chores"
@@ -92,6 +122,13 @@ class Chore(models.Model):
         default=1, help_text="Rough effort weight, used for the leaderboard."
     )
     is_active = models.BooleanField(default=True)
+    recurrence = models.CharField(
+        max_length=10, choices=Recurrence.choices, default=Recurrence.NONE
+    )
+    rotate_assignee = models.BooleanField(
+        default=False,
+        help_text="Pass each new occurrence to the next household member.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -99,6 +136,32 @@ class Chore(models.Model):
 
     def __str__(self) -> str:
         return self.title
+
+    @property
+    def is_recurring(self) -> bool:
+        return self.recurrence != self.Recurrence.NONE
+
+    def next_due(self, after: date) -> date:
+        """The due date of the occurrence that follows one due on ``after``."""
+        if self.recurrence == self.Recurrence.MONTHLY:
+            return _add_one_month(after)
+        days = self._INTERVAL_DAYS.get(self.recurrence)
+        if days is None:
+            return after
+        return after + timedelta(days=days)
+
+    def next_assignee(self, current: User) -> User:
+        """Who gets the next occurrence: ``current``, or the next member if rotating."""
+        members = list(self.household.members)
+        if not members:
+            return current
+        if not self.rotate_assignee:
+            return current
+        try:
+            index = members.index(current)
+        except ValueError:
+            return members[0]
+        return members[(index + 1) % len(members)]
 
 
 class Assignment(models.Model):
@@ -136,7 +199,8 @@ class Assignment(models.Model):
         """Mark this assignment done and record a completion event.
 
         Idempotent: calling it again on an already-completed assignment returns
-        the existing event instead of creating a duplicate.
+        the existing event instead of creating a duplicate (and does not spawn
+        another recurring occurrence).
         """
         existing = self.completion_events.first()
         if self.status == self.Status.DONE and existing is not None:
@@ -144,17 +208,41 @@ class Assignment(models.Model):
         self.status = self.Status.DONE
         self.completed_at = timezone.now()
         self.save(update_fields=["status", "completed_at"])
-        return CompletionEvent.objects.create(
+        event = CompletionEvent.objects.create(
             assignment=self,
             completed_by=user,
             points_awarded=self.chore.points,
             note=note,
         )
+        self.spawn_next()
+        return event
 
     def skip(self) -> None:
+        if self.status == self.Status.SKIPPED:
+            return
         self.status = self.Status.SKIPPED
         self.completed_at = timezone.now()
         self.save(update_fields=["status", "completed_at"])
+        self.spawn_next()
+
+    def spawn_next(self) -> "Assignment | None":
+        """Create the next occurrence of a recurring chore, if one is due.
+
+        Does nothing unless the chore repeats, is active, and has no other
+        pending assignment — so completing twice, or completing then skipping,
+        never stacks up duplicates.
+        """
+        chore = self.chore
+        if not (chore.is_recurring and chore.is_active):
+            return None
+        if chore.assignments.filter(status=self.Status.PENDING).exists():
+            return None
+        due = max(chore.next_due(self.due_date), timezone.localdate())
+        return Assignment.objects.create(
+            chore=chore,
+            assignee=chore.next_assignee(self.assignee),
+            due_date=due,
+        )
 
 
 class CompletionEvent(models.Model):

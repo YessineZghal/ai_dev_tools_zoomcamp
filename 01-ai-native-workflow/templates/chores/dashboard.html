@@ -23,6 +23,7 @@
                 <input type="hidden" name="next" value="{{ request.path }}">
                 <button type="submit">Complete</button>
               </form>
+              <a class="button secondary" href="{% url 'assignment_complete' a.pk %}?next={{ request.path }}">＋ note</a>
             </li>
           {% endfor %}
         </ul>
@@ -70,7 +71,7 @@
       <ul class="panel-list">
         {% for row in leaderboard %}
           <li>
-            <span class="title">{{ forloop.counter }}. {{ row.member.username }}</span>
+            <span class="title">{{ forloop.counter }}. {{ row.name }}</span>
             <span class="spacer"></span>
             <span class="meta">{{ row.points }} pt{{ row.points|pluralize }}</span>
           </li>

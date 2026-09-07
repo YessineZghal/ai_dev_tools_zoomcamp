@@ -1,12 +1,18 @@
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Prefetch, Q, Sum
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import AssignmentForm, ChoreForm, HouseholdChoiceForm, RegisterForm
+from .forms import (
+    AssignmentForm,
+    ChoreForm,
+    HouseholdChoiceForm,
+    MembershipForm,
+    RegisterForm,
+)
 from .models import Assignment, Chore, CompletionEvent, household_of
 
 LEADERBOARD_WINDOW_DAYS = 30
@@ -42,6 +48,56 @@ def household_setup(request):
     else:
         form = HouseholdChoiceForm()
     return render(request, "chores/household_setup.html", {"form": form})
+
+
+@login_required
+def household_detail(request):
+    """The household roster: members with 30-day points and pending counts,
+    the invite code, and a form for the current user to set their display name.
+    """
+    household, bounce = _household_or_setup(request)
+    if bounce:
+        return bounce
+
+    my_membership = request.user.membership
+    if request.method == "POST":
+        form = MembershipForm(request.POST, instance=my_membership)
+        if form.is_valid():
+            form.save()
+            return redirect("household_detail")
+    else:
+        form = MembershipForm(instance=my_membership)
+
+    since = timezone.now() - timezone.timedelta(days=LEADERBOARD_WINDOW_DAYS)
+    points = {
+        row["completed_by"]: row["points"]
+        for row in CompletionEvent.objects.filter(
+            assignment__chore__household=household, completed_at__gte=since
+        )
+        .values("completed_by")
+        .annotate(points=Sum("points_awarded"))
+    }
+    pending = {
+        row["assignee"]: row["count"]
+        for row in Assignment.objects.filter(
+            chore__household=household, status=Assignment.Status.PENDING
+        )
+        .values("assignee")
+        .annotate(count=Count("id"))
+    }
+    members = [
+        {
+            "membership": m,
+            "points_30d": points.get(m.user_id, 0),
+            "pending_count": pending.get(m.user_id, 0),
+        }
+        for m in household.memberships.select_related("user").order_by("display_name")
+    ]
+    return render(
+        request,
+        "chores/household_detail.html",
+        {"household": household, "members": members, "form": form},
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -97,10 +153,14 @@ def dashboard(request):
     }
     leaderboard = sorted(
         (
-            {"member": m, "points": points_by_user.get(m.pk, 0)}
+            {
+                "member": m,
+                "name": m.membership.display_name,
+                "points": points_by_user.get(m.pk, 0),
+            }
             for m in household.members
         ),
-        key=lambda r: (-r["points"], r["member"].get_username().lower()),
+        key=lambda r: (-r["points"], r["name"].lower()),
     )
 
     return render(
@@ -117,6 +177,46 @@ def dashboard(request):
     )
 
 
+MY_CHORES_FILTERS = [
+    ("pending", "Pending"),
+    ("done", "Done"),
+    ("skipped", "Skipped"),
+    ("all", "All"),
+]
+
+
+@login_required
+def my_chores(request):
+    """Every assignment for the current user, filterable by status."""
+    household, bounce = _household_or_setup(request)
+    if bounce:
+        return bounce
+
+    status = request.GET.get("status", "pending")
+    if status not in dict(MY_CHORES_FILTERS):
+        status = "pending"
+
+    assignments = (
+        Assignment.objects.filter(
+            assignee=request.user, chore__household=household
+        )
+        .select_related("chore")
+        .order_by("due_date", "id")
+    )
+    if status != "all":
+        assignments = assignments.filter(status=status.upper())
+
+    return render(
+        request,
+        "chores/my_chores.html",
+        {
+            "assignments": assignments,
+            "status": status,
+            "filters": MY_CHORES_FILTERS,
+        },
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Chores CRUD (Feature 1)
 # --------------------------------------------------------------------------- #
@@ -125,6 +225,11 @@ def chore_list(request):
     household, bounce = _household_or_setup(request)
     if bounce:
         return bounce
+    pending_qs = (
+        Assignment.objects.filter(status=Assignment.Status.PENDING)
+        .select_related("assignee")
+        .order_by("due_date", "id")
+    )
     chores = (
         Chore.objects.filter(household=household)
         .annotate(
@@ -133,7 +238,9 @@ def chore_list(request):
                 filter=Q(assignments__status=Assignment.Status.PENDING),
             )
         )
-        .prefetch_related("assignments__assignee")
+        .prefetch_related(
+            Prefetch("assignments", queryset=pending_qs, to_attr="pending_assignments")
+        )
         .order_by("title")
     )
     return render(request, "chores/chore_list.html", {"chores": chores})
@@ -221,13 +328,23 @@ def _get_scoped_assignment(request, pk):
 
 
 @login_required
-@require_POST
 def assignment_complete(request, pk):
+    """POST completes the assignment (optionally with a ``note``).
+
+    GET shows a small form with an optional note field — the quick one-click
+    Complete buttons POST here directly and skip the form.
+    """
     assignment = _get_scoped_assignment(request, pk)
     if assignment is None:
         raise Http404
-    assignment.complete(request.user, note=request.POST.get("note", ""))
-    return redirect(_safe_next(request))
+    if request.method == "POST":
+        assignment.complete(request.user, note=request.POST.get("note", ""))
+        return redirect(_safe_next(request))
+    return render(
+        request,
+        "chores/assignment_complete.html",
+        {"assignment": assignment, "next": _safe_next(request)},
+    )
 
 
 @login_required
