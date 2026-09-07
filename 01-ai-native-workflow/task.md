@@ -1,5 +1,12 @@
 # Choreo Implementation Plan (`task.md`)
 
+> **Status: ✅ complete.** All 8 tasks implemented; `uv run python manage.py test`
+> → 60 passing. Tasks 0–5 were committed locally as they were built; from Task 6
+> on, changes were left uncommitted at the repo owner's request (handle git
+> yourself). Feature views (Tasks 3–6) were wired in Task 2 because the shared
+> nav template references their URL names — each feature's tests were still
+> written and run in its own task.
+
 > **For agentic workers:** Implement this plan task-by-task. Steps use checkbox
 > (`- [ ]`) syntax for tracking. Check a box only after the step's command has
 > run and produced the expected result.
@@ -54,28 +61,28 @@ Django's built-in auth plus a custom `register` view that creates or joins a
 - Produces: a runnable Django project; `chores` app importable; `INSTALLED_APPS`
   contains `"chores"`.
 
-- [ ] **Step 1: Init the uv project**
+- [x] **Step 1: Init the uv project**
   ```bash
   cd 01-ai-native-workflow
   uv init --name choreo --python 3.12 --no-workspace
   rm -f main.py hello.py        # remove uv's sample module if present
   ```
-- [ ] **Step 2: Add Django**
+- [x] **Step 2: Add Django**
   ```bash
   uv add "django>=5,<6"
   uv run python -c "import django; print(django.get_version())"
   ```
   Expected: prints a `5.x` version.
-- [ ] **Step 3: Create the Django project in-place**
+- [x] **Step 3: Create the Django project in-place**
   ```bash
   uv run django-admin startproject household .
   ```
   Expected: `manage.py` and `household/` appear next to `pyproject.toml`.
-- [ ] **Step 4: Create the app**
+- [x] **Step 4: Create the app**
   ```bash
   uv run python manage.py startapp chores
   ```
-- [ ] **Step 5: Register the app + config in `household/settings.py`**
+- [x] **Step 5: Register the app + config in `household/settings.py`**
   - Add `"chores"` to `INSTALLED_APPS`.
   - `TEMPLATES[0]["DIRS"] = [BASE_DIR / "templates"]`.
   - At the end of the file add:
@@ -84,7 +91,7 @@ Django's built-in auth plus a custom `register` view that creates or joins a
     LOGIN_REDIRECT_URL = "dashboard"
     LOGOUT_REDIRECT_URL = "login"
     ```
-- [ ] **Step 6: Write `.gitignore`** (Python + Django):
+- [x] **Step 6: Write `.gitignore`** (Python + Django):
   ```gitignore
   __pycache__/
   *.py[cod]
@@ -95,14 +102,14 @@ Django's built-in auth plus a custom `register` view that creates or joins a
   /staticfiles/
   .pytest_cache/
   ```
-- [ ] **Step 7: Verify the project boots**
+- [x] **Step 7: Verify the project boots**
   ```bash
   uv run python manage.py check
   uv run python manage.py migrate
   ```
   Expected: `check` → "System check identified no issues"; `migrate` applies
   Django's built-in migrations.
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
   ```bash
   git add 01-ai-native-workflow
   git commit -m "chore: scaffold uv + Django project and chores app"
@@ -139,7 +146,7 @@ Django's built-in auth plus a custom `register` view that creates or joins a
   - `User.membership` reverse accessor; helper
     `household_of(user) -> Household | None`.
 
-- [ ] **Step 1: Write failing model tests** in `chores/tests/test_models.py`:
+- [x] **Step 1: Write failing model tests** in `chores/tests/test_models.py`:
   ```python
   from datetime import date, timedelta
   from django.contrib.auth.models import User
@@ -210,13 +217,13 @@ Django's built-in auth plus a custom `register` view that creates or joins a
           self.assertEqual(a.status, Assignment.Status.SKIPPED)
           self.assertEqual(CompletionEvent.objects.count(), 0)
   ```
-- [ ] **Step 2: Delete `chores/tests.py`**, create `chores/tests/__init__.py`
+- [x] **Step 2: Delete `chores/tests.py`**, create `chores/tests/__init__.py`
   (empty). Run the tests to confirm they fail:
   ```bash
   uv run python manage.py test chores
   ```
   Expected: `ImportError` / `cannot import name` — models not defined yet.
-- [ ] **Step 3: Implement `chores/models.py`.** Key points:
+- [x] **Step 3: Implement `chores/models.py`.** Key points:
   - `INVITE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"` (no ambiguous chars).
   - `Household.save()` generates a unique `invite_code` when blank (loop with
     `random.choices`, check `Household.objects.filter(invite_code=…).exists()`).
@@ -232,28 +239,28 @@ Django's built-in auth plus a custom `register` view that creates or joins a
     points_awarded=self.chore.points, note=note)`.
   - `skip()`: set `status=SKIPPED`, `completed_at=timezone.now()`, `save()`.
   - Sensible `Meta.ordering` and `__str__` on each model.
-- [ ] **Step 4: Make and run migrations**
+- [x] **Step 4: Make and run migrations**
   ```bash
   uv run python manage.py makemigrations chores
   uv run python manage.py migrate
   ```
-- [ ] **Step 5: Run the model tests**
+- [x] **Step 5: Run the model tests**
   ```bash
   uv run python manage.py test chores.tests.test_models
   ```
   Expected: all pass.
-- [ ] **Step 6: Register all five models in `chores/admin.py`** with
+- [x] **Step 6: Register all five models in `chores/admin.py`** with
   `@admin.register(...)` and a `list_display` for each.
-- [ ] **Step 7: Create `templates/base.html`** — `<!doctype html>`, `<head>`
+- [x] **Step 7: Create `templates/base.html`** — `<!doctype html>`, `<head>`
   links `{% load static %}` → `chores/style.css`, a `<nav>` with links to
   `dashboard`, `chore_list`, `history`, a logout `<form method="post">`, and the
   current `user`. `{% block content %}{% endblock %}`. Wrap nav links in
   `{% if user.is_authenticated %}`.
-- [ ] **Step 8: Create `chores/static/chores/style.css`** — a small, clean
+- [x] **Step 8: Create `chores/static/chores/style.css`** — a small, clean
   stylesheet (system font stack, max-width container, card style for panels,
   a `.overdue` class in a warning colour, simple table styling). Keep it under
   ~120 lines.
-- [ ] **Step 9: `manage.py check` then commit**
+- [x] **Step 9: `manage.py check` then commit**
   ```bash
   uv run python manage.py check
   git add 01-ai-native-workflow
@@ -287,7 +294,7 @@ Django's built-in auth plus a custom `register` view that creates or joins a
   - `chores/forms.py::RegisterForm`, `chores/views.py::register`,
     `chores/views.py::household_setup`, `chores/views.py::dashboard`.
 
-- [ ] **Step 1: Write `chores/tests/test_auth.py`** covering:
+- [x] **Step 1: Write `chores/tests/test_auth.py`** covering:
   - `test_register_create_household`: POST to `register` with
     `mode=create, household_name="Flat A"` → 302 to `/`; `User` exists,
     `Membership` links to a `Household` named "Flat A", user is logged in.
@@ -299,19 +306,19 @@ Django's built-in auth plus a custom `register` view that creates or joins a
     `/accounts/login/?next=/`.
   - `test_logout`: logged-in user POSTs to `logout` → redirected, session
     anonymous.
-- [ ] **Step 2: Run → fail**
+- [x] **Step 2: Run → fail**
   `uv run python manage.py test chores.tests.test_auth` (expected: 404/reverse
   errors — URLs not wired).
-- [ ] **Step 3: Implement `RegisterForm`** in `chores/forms.py`.
-- [ ] **Step 4: Implement `register`, `household_setup`, `dashboard` (stub)** in
+- [x] **Step 3: Implement `RegisterForm`** in `chores/forms.py`.
+- [x] **Step 4: Implement `register`, `household_setup`, `dashboard` (stub)** in
   `chores/views.py`. `register`: on valid form, `form.save()`, then
   `login(request, user)`, redirect `dashboard`. `dashboard`:
   `@login_required`; if `household_of(request.user) is None` → redirect
   `household_setup`; else `render(request, "chores/dashboard.html", ctx)` — for
   this task a minimal context/template is fine (real one in Task 6).
-- [ ] **Step 5: Create `chores/urls.py`** with `app_name` omitted (use plain
+- [x] **Step 5: Create `chores/urls.py`** with `app_name` omitted (use plain
   names) and wire `register`, `household_setup`, `dashboard`.
-- [ ] **Step 6: Update `household/urls.py`**:
+- [x] **Step 6: Update `household/urls.py`**:
   ```python
   from django.contrib import admin
   from django.urls import include, path
@@ -325,12 +332,12 @@ Django's built-in auth plus a custom `register` view that creates or joins a
   ```
   (Or cleaner: `from chores import views as chore_views` then
   `path("accounts/register/", chore_views.register, name="register")`.)
-- [ ] **Step 7: Templates** — `login.html` and `register.html` extend
+- [x] **Step 7: Templates** — `login.html` and `register.html` extend
   `base.html`, render the form with `{{ form.as_p }}` and a submit button;
   `household_setup.html` similar.
-- [ ] **Step 8: Run tests → pass**
+- [x] **Step 8: Run tests → pass**
   `uv run python manage.py test chores.tests.test_auth`
-- [ ] **Step 9: Manual smoke + commit**
+- [x] **Step 9: Manual smoke + commit**
   ```bash
   uv run python manage.py test chores
   git add 01-ai-native-workflow
@@ -355,7 +362,7 @@ Django's built-in auth plus a custom `register` view that creates or joins a
   `fields = ["title", "description", "points", "is_active"]`. All views
   `@login_required` and filter `Chore.objects.filter(household=household_of(user))`.
 
-- [ ] **Step 1: Write `chores/tests/test_chores.py`**:
+- [x] **Step 1: Write `chores/tests/test_chores.py`**:
   - `test_list_shows_only_my_household`: two households with a chore each; user
     in household A sees A's chore, not B's (asserts on response content).
   - `test_create_chore_attaches_household`: POST valid data → `Chore` created
@@ -364,25 +371,25 @@ Django's built-in auth plus a custom `register` view that creates or joins a
   - `test_delete_chore`: POST to delete → `Chore` gone, its assignments gone.
   - `test_cannot_edit_other_household_chore`: user A POSTs to edit B's chore →
     404.
-- [ ] **Step 2: Run → fail.**
-- [ ] **Step 3: Implement `ChoreForm` + the four views.** Use function-based
+- [x] **Step 2: Run → fail.**
+- [x] **Step 3: Implement `ChoreForm` + the four views.** Use function-based
   views for consistency, or `ListView`/`CreateView`/`UpdateView`/`DeleteView`
   with `get_queryset` scoped to the household and `form_valid` setting
   `form.instance.household`. Either is fine — pick one and be consistent.
-- [ ] **Step 4: Add URLs** under `/chores/…` per `spec.md §7`.
-- [ ] **Step 5: Templates** — `chore_list.html` (table: title, points, active,
+- [x] **Step 4: Add URLs** under `/chores/…` per `spec.md §7`.
+- [x] **Step 5: Templates** — `chore_list.html` (table: title, points, active,
   open-assignments count, edit/delete/assign links, "New chore" button);
   `chore_form.html` (shared create/edit); `chore_confirm_delete.html`.
-- [ ] **Step 6: Run tests → pass; full suite → pass.**
+- [x] **Step 6: Run tests → pass; full suite → pass.**
   ```bash
   uv run python manage.py test chores
   ```
-- [ ] **Step 7: Run the dev server once and click through**
+- [x] **Step 7: Run the dev server once and click through**
   ```bash
   uv run python manage.py runserver
   ```
   Visit `/chores/`, create/edit/delete a chore. Ctrl-C to stop.
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
   `git commit -m "feat: household-scoped chores CRUD"`
 
 ---
@@ -407,7 +414,7 @@ Django's built-in auth plus a custom `register` view that creates or joins a
   (`require_POST`), 404 if the assignment's chore isn't in the user's
   household.
 
-- [ ] **Step 1: Write `chores/tests/test_assignments.py`**:
+- [x] **Step 1: Write `chores/tests/test_assignments.py`**:
   - `test_assign_limits_assignee_to_household`: form for household A does not
     accept a user from household B (`assertFormError` / 200 with error).
   - `test_assign_creates_pending_assignment`: POST → `Assignment` with
@@ -418,17 +425,17 @@ Django's built-in auth plus a custom `register` view that creates or joins a
   - `test_skip_assignment_via_view`: POST → `status=SKIPPED`, no event.
   - `test_complete_get_not_allowed`: GET → 405.
   - `test_cannot_complete_other_household_assignment`: 404.
-- [ ] **Step 2: Run → fail.**
-- [ ] **Step 3: Implement `AssignmentForm` + views** (`assignment_create` is a
+- [x] **Step 2: Run → fail.**
+- [x] **Step 3: Implement `AssignmentForm` + views** (`assignment_create` is a
   view on `chore_pk`; `assignment_complete` / `assignment_skip` are
   `@require_POST` and call the model methods, then redirect back to
   `next` or `dashboard`).
-- [ ] **Step 4: Add URLs.**
-- [ ] **Step 5: Templates** — `assignment_form.html`; update `chore_list.html`
+- [x] **Step 4: Add URLs.**
+- [x] **Step 5: Templates** — `assignment_form.html`; update `chore_list.html`
   to show each chore's open assignments with Complete / Skip buttons
   (`<form method="post">` + `{% csrf_token %}`).
-- [ ] **Step 6: Run tests → pass; full suite → pass.**
-- [ ] **Step 7: Commit** `git commit -m "feat: assign, complete, and skip chore assignments"`
+- [x] **Step 6: Run tests → pass; full suite → pass.**
+- [x] **Step 7: Commit** `git commit -m "feat: assign, complete, and skip chore assignments"`
 
 ---
 
@@ -448,17 +455,17 @@ Django's built-in auth plus a custom `register` view that creates or joins a
   optional `?member=<user_id>` filter; context also has `members` for the
   filter dropdown.
 
-- [ ] **Step 1: Write `chores/tests/test_history.py`**:
+- [x] **Step 1: Write `chores/tests/test_history.py`**:
   - `test_history_lists_household_events_newest_first`.
   - `test_history_excludes_other_household`.
   - `test_history_member_filter`: `?member=<id>` returns only that member's
     events.
-- [ ] **Step 2: Run → fail.**
-- [ ] **Step 3: Implement the `history` view + URL.**
-- [ ] **Step 4: `history.html`** — member `<select>` (GET form) + a table
+- [x] **Step 2: Run → fail.**
+- [x] **Step 3: Implement the `history` view + URL.**
+- [x] **Step 4: `history.html`** — member `<select>` (GET form) + a table
   (chore, who, when, points, note).
-- [ ] **Step 5: Run tests → pass; full suite → pass.**
-- [ ] **Step 6: Commit** `git commit -m "feat: completion history with member filter"`
+- [x] **Step 5: Run tests → pass; full suite → pass.**
+- [x] **Step 6: Commit** `git commit -m "feat: completion history with member filter"`
 
 ---
 
@@ -481,7 +488,7 @@ Django's built-in auth plus a custom `register` view that creates or joins a
     `completed_by` over the last 30 days, ranked desc (include members with 0).
   - `invite_code`: `household_of(user).invite_code`.
 
-- [ ] **Step 1: Write `chores/tests/test_dashboard.py`**:
+- [x] **Step 1: Write `chores/tests/test_dashboard.py`**:
   - `test_dashboard_my_pending_only_mine_and_pending`.
   - `test_dashboard_overdue_panel`.
   - `test_dashboard_recent_activity_limit_10_and_scoped`.
@@ -490,8 +497,8 @@ Django's built-in auth plus a custom `register` view that creates or joins a
     `CompletionEvent.objects.filter(...).update(completed_at=…)` to backdate);
     assert ordering and that the old one is excluded.
   - `test_dashboard_shows_invite_code`.
-- [ ] **Step 2: Run → fail** (dashboard is still the stub).
-- [ ] **Step 3: Implement the real `dashboard` view.** Leaderboard query:
+- [x] **Step 2: Run → fail** (dashboard is still the stub).
+- [x] **Step 3: Implement the real `dashboard` view.** Leaderboard query:
   ```python
   from django.db.models import Sum
   from django.utils import timezone
@@ -505,12 +512,12 @@ Django's built-in auth plus a custom `register` view that creates or joins a
   ```
   Merge with `hh.members` so zero-score members still appear; sort by points
   desc then display name.
-- [ ] **Step 4: Build `dashboard.html`** — four `<section class="card">`
+- [x] **Step 4: Build `dashboard.html`** — four `<section class="card">`
   panels + the invite code. Use the `.overdue` CSS class on overdue rows.
-- [ ] **Step 5: Run tests → pass; full suite → pass.**
-- [ ] **Step 6: Manual click-through of the whole flow**
+- [x] **Step 5: Run tests → pass; full suite → pass.**
+- [x] **Step 6: Manual click-through of the whole flow**
   (register → household → chore → assign → complete → dashboard + history).
-- [ ] **Step 7: Commit** `git commit -m "feat: dashboard with pending, overdue, activity, leaderboard"`
+- [x] **Step 7: Commit** `git commit -m "feat: dashboard with pending, overdue, activity, leaderboard"`
 
 ---
 
@@ -520,7 +527,7 @@ Django's built-in auth plus a custom `register` view that creates or joins a
 - Modify: any `chores/tests/test_*.py` with gaps
 - Create: `chores/tests/test_isolation.py` (cross-cutting data-isolation tests)
 
-- [ ] **Step 1: List the scenarios** the suite must cover and check each has a
+- [x] **Step 1: List the scenarios** the suite must cover and check each has a
   test (write to the "Testing" section of `README.md`):
   1. Model: invite code generation & uniqueness.
   2. Model: `is_overdue` true/false paths.
@@ -537,20 +544,20 @@ Django's built-in auth plus a custom `register` view that creates or joins a
   9. History: newest-first, household-scoped, member filter.
   10. Dashboard: each panel's contents and scoping; leaderboard 30-day window
       and ordering; invite code shown.
-- [ ] **Step 2: Add `chores/tests/test_isolation.py`** consolidating the
+- [x] **Step 2: Add `chores/tests/test_isolation.py`** consolidating the
   cross-household negative cases (some may duplicate earlier tests — that's
   fine, this file is the single place a reviewer checks isolation).
-- [ ] **Step 3: Run the full suite verbosely**
+- [x] **Step 3: Run the full suite verbosely**
   ```bash
   uv run python manage.py test -v 2
   ```
   Expected: all green. Fix any failures before continuing.
-- [ ] **Step 4: Check for obvious gaps** with a coverage eyeball (optional):
+- [x] **Step 4: Check for obvious gaps** with a coverage eyeball (optional):
   ```bash
   uv run python -m pip install coverage >/dev/null 2>&1 || true
   ```
   (Skip if `coverage` isn't trivially available — not a dependency.)
-- [ ] **Step 5: Commit** `git commit -m "test: consolidate data-isolation tests and coverage pass"`
+- [x] **Step 5: Commit** `git commit -m "test: consolidate data-isolation tests and coverage pass"`
 
 ---
 
@@ -561,25 +568,25 @@ Django's built-in auth plus a custom `register` view that creates or joins a
 - Modify: `_docs/plan.md`, `backlog.md` (tick completed items)
 - Create: `backlog.md` if not already created in a checkpoint
 
-- [ ] **Step 1: Write `backlog.md`** — the numbered Django backlog derived from
+- [x] **Step 1: Write `backlog.md`** — the numbered Django backlog derived from
   this plan (Task 0–8 → backlog items 1–N with one-line descriptions and
   acceptance criteria). Homework Q4 answer = backlog item 1.
-- [ ] **Step 2: Write `README.md`** — see the "README contents" section below.
-- [ ] **Step 3: Fill in the 6 homework answers** in `README.md`:
+- [x] **Step 2: Write `README.md`** — see the "README contents" section below.
+- [x] **Step 3: Fill in the 6 homework answers** in `README.md`:
   - Q1: Claude Code.
   - Q2: the 4 features (Chores CRUD, Assignments, Completion log, Dashboard).
   - Q3: `settings.py`.
   - Q4: backlog item 1's title.
   - Q5: `uv run python manage.py runserver`.
   - Q6: `uv run python manage.py test`.
-- [ ] **Step 4: Final full verification**
+- [x] **Step 4: Final full verification**
   ```bash
   uv run python manage.py check
   uv run python manage.py makemigrations --check --dry-run
   uv run python manage.py test
   ```
   All must pass / report no changes.
-- [ ] **Step 5: Commit and push**
+- [x] **Step 5: Commit and push**
   ```bash
   git add 01-ai-native-workflow
   git commit -m "docs: README, backlog, and homework answers for HW1"

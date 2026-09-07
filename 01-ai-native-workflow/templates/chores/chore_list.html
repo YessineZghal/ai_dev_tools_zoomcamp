@@ -24,8 +24,9 @@
             <td>
               {% for a in chore.assignments.all %}
                 {% if a.status == "PENDING" %}
-                  <div class="actions{% if a.is_overdue %} overdue{% endif %}">
+                  <div class="actions">
                     <span>{{ a.assignee.username }} · due {{ a.due_date }}</span>
+                    {% if a.is_overdue %}<span class="pill-overdue">overdue</span>{% endif %}
                     <form class="inline" method="post" action="{% url 'assignment_complete' a.pk %}">
                       {% csrf_token %}
                       <input type="hidden" name="next" value="{{ request.path }}">
@@ -42,7 +43,7 @@
                 <span class="muted">none</span>
               {% endfor %}
             </td>
-            <td class="actions">
+            <td class="actions nowrap">
               <a class="button secondary" href="{% url 'assignment_create' chore.pk %}">Assign</a>
               <a class="button secondary" href="{% url 'chore_update' chore.pk %}">Edit</a>
               <a class="button secondary" href="{% url 'chore_delete' chore.pk %}">Delete</a>

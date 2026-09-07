@@ -11,23 +11,21 @@
     <section class="card">
       <h2>My pending chores</h2>
       {% if my_pending %}
-        <table>
-          <tbody>
-            {% for a in my_pending %}
-              <tr class="{% if a.is_overdue %}overdue{% endif %}">
-                <td>{{ a.chore.title }}</td>
-                <td>due {{ a.due_date }}{% if a.is_overdue %} · overdue{% endif %}</td>
-                <td class="actions">
-                  <form class="inline" method="post" action="{% url 'assignment_complete' a.pk %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ request.path }}">
-                    <button type="submit">Complete</button>
-                  </form>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        <ul class="panel-list">
+          {% for a in my_pending %}
+            <li class="{% if a.is_overdue %}overdue{% endif %}">
+              <span class="title">{{ a.chore.title }}</span>
+              <span class="meta">due {{ a.due_date }}</span>
+              {% if a.is_overdue %}<span class="pill-overdue">overdue</span>{% endif %}
+              <span class="spacer"></span>
+              <form class="inline" method="post" action="{% url 'assignment_complete' a.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit">Complete</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
       {% else %}
         <p class="muted">Nothing assigned to you. Nice.</p>
       {% endif %}
@@ -36,17 +34,14 @@
     <section class="card">
       <h2>Household overdue</h2>
       {% if household_overdue %}
-        <table>
-          <tbody>
-            {% for a in household_overdue %}
-              <tr class="overdue">
-                <td>{{ a.chore.title }}</td>
-                <td>{{ a.assignee.username }}</td>
-                <td>due {{ a.due_date }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        <ul class="panel-list">
+          {% for a in household_overdue %}
+            <li class="overdue">
+              <span class="title">{{ a.chore.title }}</span>
+              <span class="meta">{{ a.assignee.username }} · due {{ a.due_date }}</span>
+            </li>
+          {% endfor %}
+        </ul>
       {% else %}
         <p class="muted">Everything is on track.</p>
       {% endif %}
@@ -55,17 +50,16 @@
     <section class="card">
       <h2>Recent activity</h2>
       {% if recent_activity %}
-        <table>
-          <tbody>
-            {% for e in recent_activity %}
-              <tr>
-                <td>{{ e.completed_by.username }}</td>
-                <td>{{ e.assignment.chore.title }}</td>
-                <td class="muted">{{ e.completed_at }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        <ul class="panel-list">
+          {% for e in recent_activity %}
+            <li>
+              <span class="title">{{ e.completed_by.username }}</span>
+              <span class="meta">{{ e.assignment.chore.title }}</span>
+              <span class="spacer"></span>
+              <span class="meta">{{ e.completed_at|date:"M j, H:i" }}</span>
+            </li>
+          {% endfor %}
+        </ul>
       {% else %}
         <p class="muted">No chores completed yet.</p>
       {% endif %}
@@ -73,16 +67,15 @@
 
     <section class="card">
       <h2>Leaderboard <span class="muted">· last 30 days</span></h2>
-      <table>
-        <tbody>
-          {% for row in leaderboard %}
-            <tr>
-              <td>{{ forloop.counter }}. {{ row.member.username }}</td>
-              <td>{{ row.points }} pt{{ row.points|pluralize }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <ul class="panel-list">
+        {% for row in leaderboard %}
+          <li>
+            <span class="title">{{ forloop.counter }}. {{ row.member.username }}</span>
+            <span class="spacer"></span>
+            <span class="meta">{{ row.points }} pt{{ row.points|pluralize }}</span>
+          </li>
+        {% endfor %}
+      </ul>
     </section>
   </div>
 {% endblock %}

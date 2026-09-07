@@ -75,9 +75,26 @@ h2 { font-size: 1.15rem; margin: 0 0 0.75rem; }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
   gap: 1rem;
+  align-items: start;
 }
+
+/* Compact vertical list used inside dashboard panels */
+.panel-list { list-style: none; margin: 0; padding: 0; }
+.panel-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.panel-list li:last-child { border-bottom: none; }
+.panel-list .title { font-weight: 600; }
+.panel-list .meta { color: var(--muted); font-size: 0.9rem; }
+.panel-list .spacer { flex: 1; }
+.panel-list li.overdue .meta { color: var(--warn-ink); font-weight: 600; }
 
 .card {
   background: var(--card);
@@ -101,7 +118,16 @@ th, td {
 
 th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
 
-tr.overdue td, .overdue { background: var(--warn-bg); color: var(--warn-ink); }
+tr.overdue td { background: var(--warn-bg); color: var(--warn-ink); }
+.pill-overdue {
+  display: inline-block;
+  padding: 0.02rem 0.4rem;
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
 
 .badge {
   display: inline-block;
@@ -156,6 +182,10 @@ input[type="date"], select, textarea {
 .button.danger { background: #b91c1c; }
 
 .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+
+/* Smaller buttons inside data tables so action columns don't wrap */
+td .button, td button[type="submit"] { padding: 0.25rem 0.55rem; font-size: 0.85rem; }
+td.nowrap { white-space: nowrap; }
 
 .muted { color: var(--muted); }
 .good { color: var(--good); }
