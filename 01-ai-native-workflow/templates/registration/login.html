@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Log in · Choreo{% endblock %}
+{% block content %}
+  <h1>Log in</h1>
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Log in</button>
+    </form>
+  </div>
+  <p class="muted">No account yet? <a href="{% url 'register' %}">Register</a>.</p>
+{% endblock %}

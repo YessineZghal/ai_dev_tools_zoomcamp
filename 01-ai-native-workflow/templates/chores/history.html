@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}History · Choreo{% endblock %}
+{% block content %}
+  <h1>Completion history</h1>
+
+  <form method="get" class="card">
+    <label for="member">Filter by member</label>
+    <div class="actions">
+      <select name="member" id="member">
+        <option value="">Everyone</option>
+        {% for m in members %}
+          <option value="{{ m.pk }}"
+            {% if selected_member == m.pk|stringformat:'s' %}selected{% endif %}>
+            {{ m.username }}
+          </option>
+        {% endfor %}
+      </select>
+      <button type="submit">Apply</button>
+    </div>
+  </form>
+
+  {% if events %}
+    <table>
+      <thead>
+        <tr><th>When</th><th>Chore</th><th>By</th><th>Points</th><th>Note</th></tr>
+      </thead>
+      <tbody>
+        {% for e in events %}
+          <tr>
+            <td>{{ e.completed_at }}</td>
+            <td>{{ e.assignment.chore.title }}</td>
+            <td>{{ e.completed_by.username }}</td>
+            <td>+{{ e.points_awarded }}</td>
+            <td>{{ e.note|default:"" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">No completions recorded yet.</p>
+  {% endif %}
+{% endblock %}

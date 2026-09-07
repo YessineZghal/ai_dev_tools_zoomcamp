@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Chores · Choreo{% endblock %}
+{% block content %}
+  <h1>Chores</h1>
+  <p><a class="button" href="{% url 'chore_create' %}">New chore</a></p>
+
+  {% if chores %}
+    <table>
+      <thead>
+        <tr>
+          <th>Chore</th><th>Points</th><th>Active</th>
+          <th>Open assignments</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for chore in chores %}
+          <tr>
+            <td>
+              <strong>{{ chore.title }}</strong>
+              {% if chore.description %}<br><span class="muted">{{ chore.description }}</span>{% endif %}
+            </td>
+            <td>{{ chore.points }}</td>
+            <td>{{ chore.is_active|yesno:"yes,no" }}</td>
+            <td>
+              {% for a in chore.assignments.all %}
+                {% if a.status == "PENDING" %}
+                  <div class="actions{% if a.is_overdue %} overdue{% endif %}">
+                    <span>{{ a.assignee.username }} · due {{ a.due_date }}</span>
+                    <form class="inline" method="post" action="{% url 'assignment_complete' a.pk %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.path }}">
+                      <button type="submit">Complete</button>
+                    </form>
+                    <form class="inline" method="post" action="{% url 'assignment_skip' a.pk %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.path }}">
+                      <button type="submit" class="button secondary">Skip</button>
+                    </form>
+                  </div>
+                {% endif %}
+              {% empty %}
+                <span class="muted">none</span>
+              {% endfor %}
+            </td>
+            <td class="actions">
+              <a class="button secondary" href="{% url 'assignment_create' chore.pk %}">Assign</a>
+              <a class="button secondary" href="{% url 'chore_update' chore.pk %}">Edit</a>
+              <a class="button secondary" href="{% url 'chore_delete' chore.pk %}">Delete</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">No chores yet. Create your first one.</p>
+  {% endif %}
+{% endblock %}

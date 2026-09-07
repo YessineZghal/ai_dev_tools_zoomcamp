@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ chore.title }} · Choreo{% endblock %}
+{% block content %}
+  <h1>Delete chore</h1>
+  <div class="card">
+    <p>Delete <strong>{{ chore.title }}</strong>? This also removes all of its
+    assignments and their completion history.</p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="actions">
+        <button type="submit" class="button danger">Delete</button>
+        <a class="button secondary" href="{% url 'chore_list' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Set up your household · Choreo{% endblock %}
+{% block content %}
+  <h1>Set up your household</h1>
+  <p class="muted">Your account isn't linked to a household yet.</p>
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Continue</button>
+    </form>
+  </div>
+{% endblock %}
