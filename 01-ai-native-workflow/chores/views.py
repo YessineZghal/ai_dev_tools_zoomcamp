@@ -83,7 +83,7 @@ def dashboard(request):
     recent_activity = (
         CompletionEvent.objects.filter(assignment__chore__household=household)
         .select_related("assignment__chore", "completed_by")
-        .order_by("-completed_at")[:RECENT_ACTIVITY_LIMIT]
+        .order_by("-completed_at", "-id")[:RECENT_ACTIVITY_LIMIT]
     )
 
     since = timezone.now() - timezone.timedelta(days=LEADERBOARD_WINDOW_DAYS)
@@ -251,7 +251,7 @@ def history(request):
     events = (
         CompletionEvent.objects.filter(assignment__chore__household=household)
         .select_related("assignment__chore", "completed_by")
-        .order_by("-completed_at")
+        .order_by("-completed_at", "-id")
     )
     member_id = request.GET.get("member")
     selected_member = None

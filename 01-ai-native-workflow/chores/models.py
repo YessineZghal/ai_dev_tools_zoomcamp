@@ -171,7 +171,7 @@ class CompletionEvent(models.Model):
     note = models.TextField(blank=True)
 
     class Meta:
-        ordering = ["-completed_at"]
+        ordering = ["-completed_at", "-id"]
 
     def __str__(self) -> str:
         return f"{self.assignment.chore.title} by {self.completed_by} (+{self.points_awarded})"
