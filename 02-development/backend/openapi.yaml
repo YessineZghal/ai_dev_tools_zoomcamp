@@ -1,0 +1,430 @@
+openapi: 3.0.3
+info:
+  title: Flowboard API
+  description: >
+    REST API for Flowboard, a shared Kanban board app (boards, columns,
+    cards). No authentication; single shared workspace.
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /boards:
+    get:
+      summary: List all boards
+      operationId: listBoards
+      responses:
+        '200':
+          description: List of boards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Board'
+    post:
+      summary: Create a board
+      operationId: createBoard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoardCreate'
+      responses:
+        '201':
+          description: Board created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+
+  /boards/{board_id}:
+    get:
+      summary: Get a board with its columns and cards
+      operationId: getBoard
+      parameters:
+        - $ref: '#/components/parameters/BoardId'
+      responses:
+        '200':
+          description: Board detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Rename a board
+      operationId: renameBoard
+      parameters:
+        - $ref: '#/components/parameters/BoardId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoardUpdate'
+      responses:
+        '200':
+          description: Board updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete a board (cascades to its columns and cards)
+      operationId: deleteBoard
+      parameters:
+        - $ref: '#/components/parameters/BoardId'
+      responses:
+        '204':
+          description: Board deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /boards/{board_id}/columns:
+    post:
+      summary: Create a column on a board
+      operationId: createColumn
+      parameters:
+        - $ref: '#/components/parameters/BoardId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ColumnCreate'
+      responses:
+        '201':
+          description: Column created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Column'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /columns/{column_id}:
+    patch:
+      summary: Rename a column
+      operationId: renameColumn
+      parameters:
+        - $ref: '#/components/parameters/ColumnId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ColumnUpdate'
+      responses:
+        '200':
+          description: Column updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Column'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete a column (cascades to its cards)
+      operationId: deleteColumn
+      parameters:
+        - $ref: '#/components/parameters/ColumnId'
+      responses:
+        '204':
+          description: Column deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /columns/{column_id}/reorder:
+    patch:
+      summary: Reorder all columns on the board this column belongs to
+      operationId: reorderColumns
+      parameters:
+        - $ref: '#/components/parameters/ColumnId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ColumnReorder'
+      responses:
+        '200':
+          description: Columns in their new order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Column'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /columns/{column_id}/cards:
+    post:
+      summary: Create a card in a column
+      operationId: createCard
+      parameters:
+        - $ref: '#/components/parameters/ColumnId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardCreate'
+      responses:
+        '201':
+          description: Card created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Validation error (e.g. empty title)
+
+  /cards/{card_id}:
+    patch:
+      summary: Update a card's title, description, and/or color label
+      operationId: updateCard
+      parameters:
+        - $ref: '#/components/parameters/CardId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardUpdate'
+      responses:
+        '200':
+          description: Card updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete a card
+      operationId: deleteCard
+      parameters:
+        - $ref: '#/components/parameters/CardId'
+      responses:
+        '204':
+          description: Card deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cards/{card_id}/move:
+    patch:
+      summary: Move a card to a target column and position
+      operationId: moveCard
+      parameters:
+        - $ref: '#/components/parameters/CardId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardMove'
+      responses:
+        '200':
+          description: Card moved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    BoardId:
+      name: board_id
+      in: path
+      required: true
+      schema:
+        type: string
+    ColumnId:
+      name: column_id
+      in: path
+      required: true
+      schema:
+        type: string
+    CardId:
+      name: card_id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+
+  schemas:
+    Board:
+      type: object
+      required: [id, name, created_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    BoardCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+
+    BoardUpdate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+
+    Column:
+      type: object
+      required: [id, board_id, name, position]
+      properties:
+        id:
+          type: string
+        board_id:
+          type: string
+        name:
+          type: string
+        position:
+          type: integer
+
+    ColumnCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+
+    ColumnUpdate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+
+    ColumnReorder:
+      type: object
+      required: [ordered_ids]
+      properties:
+        ordered_ids:
+          type: array
+          items:
+            type: string
+
+    Card:
+      type: object
+      required: [id, column_id, title, description, color_label, position]
+      properties:
+        id:
+          type: string
+        column_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color_label:
+          type: string
+          enum: [gray, red, orange, yellow, green, blue, purple]
+          nullable: true
+        position:
+          type: integer
+
+    CardCreate:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          nullable: true
+        color_label:
+          type: string
+          enum: [gray, red, orange, yellow, green, blue, purple]
+          nullable: true
+
+    CardUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          nullable: true
+        color_label:
+          type: string
+          enum: [gray, red, orange, yellow, green, blue, purple]
+          nullable: true
+
+    CardMove:
+      type: object
+      required: [target_column_id, target_position]
+      properties:
+        target_column_id:
+          type: string
+        target_position:
+          type: integer
+          minimum: 0
+
+    BoardDetail:
+      type: object
+      required: [board, columns, cards]
+      properties:
+        board:
+          $ref: '#/components/schemas/Board'
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/Column'
+        cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/Card'
